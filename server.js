@@ -13,6 +13,8 @@ var app = express();
 var server = http.createServer(app);
 var io = require('socket.io')(server);
 
+app.use(express.static(path.join(__dirname, './public')));
+
 server.listen(PORT, function() {
   console.log(`Server listening on port ${PORT}`);
 });
@@ -22,10 +24,17 @@ app.get('/', function(req, res, next) {
 });
 
 io.on('connection', function(socket){ 
-  console.log('device connected');
+  console.log('client connected');
 
   socket.on('status', function(status){
+
+    var temp = status.temp;
+    var occupantDetected = status.occupantDetected;
+
     console.log('temp:', status.temp);
     console.log('occupantDetected:', status.occupantDetected);
+
+    io.emit('data', status);
+
   });
 });
