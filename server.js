@@ -26,9 +26,14 @@ server.listen(PORT, function() {
   console.log(`Server listening on port ${PORT}`);
 });
 
-app.all('*', function(req, res, next) {
+app.post('/text', (req, res) => {
+
+  console.log('req.body:', req.body);
+
   res.send();
-});
+
+
+})
 
 
 // tropo.listener = function(res,tropo_obj){
