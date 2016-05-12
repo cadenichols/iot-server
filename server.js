@@ -11,15 +11,11 @@ var http = require('http');
 var morgan = require('morgan');
 var bodyParser = require('body-parser')
 var request = require('request');
+var base64 = require('base-64');
 
 var app = express();
 var server = http.createServer(app);
 var io = require('socket.io')(server);
-
-// var tropo = require('simple-tropo')({
-//   token : process.env.TROPO_TOKEN
-// }).listen(app)
-
 
 app.use(morgan('dev'));
 app.use(bodyParser.json())
@@ -33,25 +29,13 @@ server.listen(PORT, function() {
 app.post('/text', (req, res) => {
 
   var text = req.body.session.initialText.toLowerCase().trim();
-  console.log('req.body:', req.body);
 
   if(text === 'ok') {
-
-    
+    clearInterval(alertInterval);    
   }
 
-
   res.send();
-
-
 })
-
-
-// tropo.listener = function(res,tropo_obj){
-//   console.log('res:', res);
-//   console.log('tropo_obj:', tropo_obj);
-// };
-
 
 var checkInterval, temp, occupantDetected, alertInterval;
 var tempArray = [];
@@ -59,28 +43,20 @@ var tempArray = [];
 var handlingAlert = false;
 
 checkInterval = setInterval(function(){
-  if(temp >= 21 && occupantDetected) {
-    console.log('ALERT!');
-    // alertMessage(process.env.PHONE_NUMBER, messages[counter]);
+  if(temp >= 20 && occupantDetected && !handlingAlert) {
+    handlingAlert = true;
+    triggerAlert()
   }
 }, 10000);
 
 
 io.on('connection', function(socket) {
   console.log('device connected');
-  
   socket.on('status', function(status) {
     temp = status.temp;
     occupantDetected = status.occupantDetected;
     io.emit('data', status);
-
-    if(temp >= 20 && occupantDetected && !handlingAlert) {
-      handlingAlert = true;
-      triggerAlert()
-    }
-
   });
-
 });
 
 
@@ -112,11 +88,14 @@ function triggerAlert() {
     if(counter === 2) {
       clearInterval(alertInterval);
       getPBData(lat, lng, (err, data) => {
-        alertMessage(process.env.EMERGENCY_NUMBER, messages[counter], function(err, res) {
+        var message = `There is an emergency. Occupant in very hot vehicle.\nLocation: ${data.streetAddress}, ${data.locationAddress}`;
+
+        alertMessage(process.env.EMERGENCY_NUMBER, message, function(err, res) {
           if(!err && res.statusCode === 200) {
             console.log('success');
           }
         });
+
       });
     }
   }, 15 * 1000);
@@ -131,27 +110,58 @@ function alertMessage = (phoneNum, message, cb) {
 
 
 function getPBData(lat, lng, cb) {
+  var key = base64.encode(`${process.env.PB_API_KEY}:${process.env.PB_SECRET}`);
 
-  async.parallel([
-    function(callback){
-      request.get('https://api.pitneybowes.com/location-intelligence/geo911/v1/psap/bylocation?latitude=' + lat + '&longitude=' + lng, function(err, res, body) {
-        console.log('geo911 response phone number: ' + body.phone);
-        callback(null, body);
-      })
+  request({
+    url: 'https://api.pitneybowes.com/oauth/token',
+    method: "POST",
+    headers: {
+      Authorization: 'Basic ' + key
+      // 'Content-type': 'application/x-www-form-urlencoded'
     },
-    function(callback){
-      request.get('https://api.pitneybowes.com/location-intelligence/geocode-service/b1/transient/premium/reverseGeocode?y=' + lat + '&x=' + lng + '&coordSysName=EPSG:4326&distance=1500&distanceUnits=METERS', function(err, res, body) {
-        console.log('geoCode response address: ' + body.candidate[0].formattedStreetAddress);
-        console.log('geoCode response address: ' + body.candidate[0].formattedLocationAddress);
-        callback(null, body.candidate[0]);
+    form: {
+      grant_type: 'client_credentials'
     }
-  ], function(err, results){
-    var geoData = {
-      phone: results[0].phone,
-      streetAddress: results[1].formattedStreetAddress,
-      locationAddress: results[1].formattedLocationAddress
-    }
-    cb(err, geoData);
+  }, (err, res, token) => {
+    console.log('token received:', JSON.parse(token).access_token);
+    token = JSON.parse(token).access_token;
+
+    async.parallel([
+      function(callback){
+        request.get({
+          url: 'https://api.pitneybowes.com/location-intelligence/geo911/v1/psap/bylocation?latitude=' + lat + '&longitude=' + lng,
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }, function(err, res, body) {
+
+          callback(null, JSON.parse(body));
+
+        })
+      },
+      function(callback) {
+        request.get({
+          url: 'https://api.pitneybowes.com/location-intelligence/geocode-service/b1/transient/premium/reverseGeocode?y=' + lat + '&x=' + lng + '&coordSysName=EPSG:4326&distance=1500&distanceUnits=METERS',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }, function(err, res, body) {
+          body = JSON.parse(body);
+
+          callback(null, body.candidates[0]);
+
+        })
+      }
+    ], function(err, results){
+      var geoData = {
+        phone: results[0].phone,
+        streetAddress: results[1].formattedStreetAddress,
+        locationAddress: results[1].formattedLocationAddress
+      }
+      cb(err, geoData);
+    });
+
   });
+
 }
 
