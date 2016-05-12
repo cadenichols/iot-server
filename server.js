@@ -2,6 +2,8 @@
 
 const PORT = process.env.PORT || 3500;
 
+require('dotenv').load();
+
 var fs = require("fs");
 var path = require("path");
 var express = require("express");
@@ -20,9 +22,10 @@ app.get('/', function(req, res, next) {
 });
 
 io.on('connection', function(socket){ 
-  console.log('socket connected');
+  console.log('device connected');
 
-  socket.on('temp', function(temp){
-    console.log('temp:', temp);
+  socket.on('status', function(status){
+    console.log('temp:', status.temp);
+    console.log('occupantDetected:', status.occupantDetected);
   });
 });
