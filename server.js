@@ -31,10 +31,10 @@ app.all('*', function(req, res, next) {
 });
 
 
-tropo.listener = function(res,tropo_obj){
-  console.log('res:', res);
-  console.log('tropo_obj:', tropo_obj);
-};
+// tropo.listener = function(res,tropo_obj){
+//   console.log('res:', res);
+//   console.log('tropo_obj:', tropo_obj);
+// };
 
 
 var alertInterval, temp, occupantDetected;
