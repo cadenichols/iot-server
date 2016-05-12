@@ -42,7 +42,8 @@ var tempArray = [];
 
 alertInterval = setInterval(function(){
   if(temp >= 21 && occupantDetected) {
-    alertMessage(process.env.PHONE_NUMBER, messages[counter]);
+    console.log('ALERT!');
+    // alertMessage(process.env.PHONE_NUMBER, messages[counter]);
   }
 }, 10000);
 
@@ -59,25 +60,25 @@ io.on('connection', function(socket) {
 });
 
 
-var firstMessage = 'Occupant detected' + \n +
-    'Current car temperature: ' + temp + \n +
-    'Please check vehicle and reply "OK"';
-var secondMessage = 'Current car temperature: ' + temp + \n +
-    'Please check vehicle and reply "OK"' + \n +
-    'or emergency services will be contacted';
-var thirdMessage = 'Car temperature critical: ' + temp + \n +
-    'Emergency services will be contacted' + \n +
-    'in 1 minute, reply "OK" to cancel';
+// var firstMessage = 'Occupant detected\n' +
+//     'Current car temperature: ' + temp + \n +
+//     'Please check vehicle and reply "OK"';
+// var secondMessage = 'Current car temperature: ' + temp + \n +
+//     'Please check vehicle and reply "OK"' + \n +
+//     'or emergency services will be contacted';
+// var thirdMessage = 'Car temperature critical: ' + temp + \n +
+//     'Emergency services will be contacted' + \n +
+//     'in 1 minute, reply "OK" to cancel';
 
-var messages = [firstMessage, secondMessage, thirdMessage];
-var counter = 0;
+// var messages = [firstMessage, secondMessage, thirdMessage];
+// var counter = 0;
 
-function alertMessage = (phoneNum, message) {
-    http.get('https://api.tropo.com/v1/sessions?action=create&token=${process.env.TROPO_TOKEN}&msg=${message}&numberToSMS=${phoneNum}',
-        function(err, res) {
-            if (!err && res.statusCode === 200) {
-                console.log('success');
-                return 'success';
-            }
-        })
-}
+// function alertMessage = (phoneNum, message) {
+//     http.get('https://api.tropo.com/v1/sessions?action=create&token=${process.env.TROPO_TOKEN}&msg=${message}&numberToSMS=${phoneNum}',
+//         function(err, res) {
+//             if (!err && res.statusCode === 200) {
+//                 console.log('success');
+//                 return 'success';
+//             }
+//         })
+// }
