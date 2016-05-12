@@ -1,6 +1,6 @@
 "use strict";
 
-const PORT = 3500;
+const PORT = process.env.PORT || 3500;
 
 var fs = require("fs");
 var path = require("path");
